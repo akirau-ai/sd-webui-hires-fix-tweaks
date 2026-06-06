@@ -1,25 +1,41 @@
 .hr-tweaks-inline-checkbox {
-    margin: 0.25em 0 0 0 !important;
+    margin: 0 !important;
     min-width: auto !important;
     flex-grow: 0 !important;
 }
 
 .hr-tweaks-inline-checkbox label{
-    font-size: 12px !important;
-    line-height: 1 !important;
+    font-size: 13px !important;
+    line-height: 0.9 !important;
     text-align: center;
     white-space: nowrap;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
 }
 
 .hr-prompt-extend-mode div label {
     padding: 0.1em 0.3em !important;
 }
 
-.hr-prompt-mode-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
+.hr-prompt-mode-column {
     width: 100%;
-    flex-basis: 100%;
     margin-top: 0.5rem;
+}
+
+.hr-prompt-mode-checkbox-row,
+.hr-prompt-mode-controls-row {
+    width: 100%;
+}
+
+.hr-prompt-mode-checkbox-row {
+    margin-top: -0.15rem;
+    margin-bottom: -0.35rem;
+}
+
+.hr-prompt-mode-checkbox-row .hr-tweaks-inline-checkbox {
+    min-height: 0 !important;
+}
+
+.hr-prompt-mode-controls-row {
+    margin-top: 0.1rem;
 }

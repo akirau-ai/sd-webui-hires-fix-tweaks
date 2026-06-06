@@ -242,7 +242,8 @@ def apply_override(p):
 
 
 def setup(p, *args):
-    remove_fp_extra_networks, hires_prompt_mode, hires_negative_prompt_mode = args[1:4]
+    hr_prompt_raw, remove_fp_extra_networks, hires_prompt_mode, hires_negative_prompt_mode = args[1:5]
+    setattr(p, "hr_prompt_raw", hr_prompt_raw)
     with RestoreSettings():
         apply_override(p)
         info_obj_p = process_prompt_mode(hires_prompt_mode, p, remove_fp_extra_networks=remove_fp_extra_networks)

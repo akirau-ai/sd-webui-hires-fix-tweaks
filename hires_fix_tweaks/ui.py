@@ -49,7 +49,7 @@ class UI:
         self.hr_cfg_e = None
 
         # hr prompt mode
-        self.hr_prompt_raw_proxy_e = None
+        self.hr_prompt_raw_e = None
         self.hr_prompt_mode_e = None
         self.hr_negative_prompt_mode_e = None
         self.remove_fp_extra_networks_e = None
@@ -78,12 +78,13 @@ class UI:
             # hr cfg scale 0:1
             self.hr_cfg_e,
 
-            # hr prompt mode 1:4
+            # hr prompt mode 1:5
+            self.hr_prompt_raw_e,
             self.remove_fp_extra_networks_e,
             self.hr_prompt_mode_e,
             self.hr_negative_prompt_mode_e,
 
-            # hr batch and seed 4:12
+            # hr batch and seed 5:13
             self.hr_batch_count_e,
             self.enable_hr_seed_e,
             self.hr_seed_e,
@@ -111,16 +112,18 @@ class UI:
         if self.create_ui_hr_prompt_mode_done:
             return
         gr_ui_element = getattr(gr, shared.opts.hires_fix_tweaks_hires_prompt_mode_ui_type, gr.Radio)
-        with gr.Row(elem_id=self.script.elem_id('hr_prompt_mode_row'), elem_classes=['hr-prompt-mode-row']) if (shared.opts.hires_fix_tweaks_show_hr_prompt_mode or shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks) else nullcontext():
-            self.hr_prompt_raw_proxy_e = gr.Checkbox(label='Raw prompt', value=False, elem_id=self.script.elem_id('hr_raw_prompt_proxy'), elem_classes=['hr-tweaks-inline-checkbox'])
-            self.remove_fp_extra_networks_e = gr.Checkbox(label='Remove LoRA at 1st pass', value=False, elem_id=self.script.elem_id('remove_fp_extra_networks'), elem_classes=['hr-tweaks-inline-checkbox'], tooltip='Remove extra networks from first-pass prompt before constructing hires-prompt', visible=shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks)
-            self.hr_prompt_mode_e = gr_ui_element(choices=list(hr_prompt_mode.hires_prompt_mode_functions), label='Hires prompt mode', value='Default', elem_id=self.script.elem_id('hr_prompt_extend_mode'), elem_classes=['hr-prompt-extend-mode'] if shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks else [], visible=shared.opts.hires_fix_tweaks_show_hr_prompt_mode)
-            self.hr_negative_prompt_mode_e = gr_ui_element(choices=list(hr_prompt_mode.hires_prompt_mode_functions), label='Hires negative prompt mode', value='Default', elem_id=self.script.elem_id('hr_negative_prompt_extend_mode'), elem_classes=['hr-prompt-extend-mode'] if shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks else [], visible=shared.opts.hires_fix_tweaks_show_hr_prompt_mode)
-            self.script.infotext_fields.extend([
-                (self.remove_fp_extra_networks_e, 'Remove FP Networks'),
-                (self.hr_prompt_mode_e, 'Hires prompt mode'),
-                (self.hr_negative_prompt_mode_e, 'Hires negative prompt mode'),
-            ])
+        with gr.Column(elem_id=self.script.elem_id('hr_prompt_mode_row'), elem_classes=['hr-prompt-mode-column']):
+            with gr.Row(elem_classes=['hr-prompt-mode-checkbox-row']):
+                self.hr_prompt_raw_e = gr.Checkbox(label='Raw prompt', value=False, elem_id=self.script.elem_id('hr_raw_prompt'), elem_classes=['hr-tweaks-inline-checkbox'])
+                self.remove_fp_extra_networks_e = gr.Checkbox(label='Remote 1st pass LORA', value=False, elem_id=self.script.elem_id('remove_fp_extra_networks'), elem_classes=['hr-tweaks-inline-checkbox'], tooltip='Remove extra networks from first-pass prompt before constructing hires-prompt', visible=shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks)
+            with gr.Row(elem_classes=['hr-prompt-mode-controls-row']):
+                self.hr_prompt_mode_e = gr_ui_element(choices=list(hr_prompt_mode.hires_prompt_mode_functions), label='Hires prompt mode', value='Default', elem_id=self.script.elem_id('hr_prompt_extend_mode'), elem_classes=['hr-prompt-extend-mode'] if shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks else [], visible=shared.opts.hires_fix_tweaks_show_hr_prompt_mode)
+                self.hr_negative_prompt_mode_e = gr_ui_element(choices=list(hr_prompt_mode.hires_prompt_mode_functions), label='Hires negative prompt mode', value='Default', elem_id=self.script.elem_id('hr_negative_prompt_extend_mode'), elem_classes=['hr-prompt-extend-mode'] if shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks else [], visible=shared.opts.hires_fix_tweaks_show_hr_prompt_mode)
+                self.script.infotext_fields.extend([
+                    (self.remove_fp_extra_networks_e, 'Remove FP Networks'),
+                    (self.hr_prompt_mode_e, 'Hires prompt mode'),
+                    (self.hr_negative_prompt_mode_e, 'Hires negative prompt mode'),
+                ])
         if shared.opts.hires_fix_tweaks_show_hr_prompt_mode and not shared.opts.hires_fix_show_prompts:
             with gr.Row():
                 gr.Markdown('''`Hires prompt mode` is only usable if `Settings` > `UI alternatives` > `Hires fix: show hires prompt and negative prompt` is enabled

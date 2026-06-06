@@ -146,8 +146,8 @@ class HiresBatchSeed:
         self.original_get_hr_negative_prompt = None
 
     def process(self, p, *args):
-        self.hr_batch_count = args[4]  # multi hr seed
-        self.enable_hr_seed = args[5]
+        self.hr_batch_count = args[5]  # multi hr seed
+        self.enable_hr_seed = args[6]
 
         self.update_progress_bar = self.patch_get_hr_prompt = self.hr_batch_count > 1
 
@@ -158,13 +158,13 @@ class HiresBatchSeed:
             return
 
         if self.enable_hr_seed:
-            self.hr_seed = args[6]
-            self.hr_seed_enable_extras = args[7]
+            self.hr_seed = args[7]
+            self.hr_seed_enable_extras = args[8]
             if self.hr_seed_enable_extras:
-                self.hr_subseed = args[8]
-                self.hr_subseed_strength = args[9]
-                self.hr_seed_resize_from_w = args[10]
-                self.hr_seed_resize_from_h = args[11]
+                self.hr_subseed = args[9]
+                self.hr_subseed_strength = args[10]
+                self.hr_seed_resize_from_w = args[11]
+                self.hr_seed_resize_from_h = args[12]
                 if self.hr_seed_resize_from_w <= 0 or self.hr_seed_resize_from_h <= 0:
                     self.hr_seed_resize_from_w = -1
                     self.hr_seed_resize_from_h = -1

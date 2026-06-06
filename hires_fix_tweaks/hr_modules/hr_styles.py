@@ -29,7 +29,7 @@ def parse_infotext(infotext, params):
 
 
 def setup(p, *args):
-    enable, hr_styles = args[12:14]
+    enable, hr_styles = args[13:15]
     if enable_hr_styles_module and getattr(p, 'enable_hr', False) and enable and p.styles != hr_styles:
         p.hr_tweaks_hr_styles = hr_styles
 
