@@ -39,3 +39,46 @@
 .hr-prompt-mode-controls-row {
     margin-top: 0.1rem;
 }
+
+.hr-prompt-preset-row {
+    width: 100%;
+    margin-top: 0.35rem;
+    align-items: end;
+    flex-wrap: nowrap;
+    gap: 0.35rem;
+}
+
+.hr-prompt-preset-row > * {
+    flex-grow: 0;
+}
+
+.hr-prompt-preset-name {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+
+.hr-prompt-preset-name .wrap,
+.hr-prompt-preset-name .wrap-inner,
+.hr-prompt-preset-name input,
+.hr-prompt-preset-name .secondary-wrap {
+    min-height: 2.35rem !important;
+}
+
+.hr-prompt-preset-name .wrap,
+.hr-prompt-preset-name .wrap-inner,
+.hr-prompt-preset-name .secondary-wrap {
+    height: 2.35rem !important;
+}
+
+.hr-prompt-preset-button,
+.hr-prompt-preset-row button {
+    min-width: 4.4rem !important;
+    width: 4.4rem !important;
+}
+
+.hr-prompt-preset-button button,
+.hr-prompt-preset-row button {
+    min-height: 2.35rem !important;
+    height: 2.35rem !important;
+    padding: 0 0.55rem !important;
+}

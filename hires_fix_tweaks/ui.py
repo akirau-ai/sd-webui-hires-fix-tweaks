@@ -5,6 +5,7 @@ except ImportError:
     from modules import infotext_utils as generation_parameters_copypaste
 from modules import shared, ui_components, ui, scripts, ui_prompt_styles
 from contextlib import nullcontext
+from pathlib import Path
 import gradio as gr
 import json
 
@@ -59,6 +60,7 @@ class UI:
         self.enable_hr_seed_e = None
         self.hr_seed_e = None
         self.hr_seed_checkbox_e = None
+        self.hr_seed_extras_group_e = None
         self.hr_subseed_e = None
         self.hr_subseed_strength_e = None
         self.hr_seed_resize_from_h_e = None
@@ -72,6 +74,14 @@ class UI:
         self.hires_negative_prompt_e = None
 
         self.apply_hr_styles_button = None
+
+        self.hr_preset_name_e = None
+        self.hr_preset_load_button = None
+        self.hr_preset_save_button = None
+        self.hr_preset_delete_button = None
+        self.hr_preset_refresh_button = None
+        self.hr_preset_status_e = None
+        self.hr_preset_callbacks_done = False
 
     def ui_args(self):
         return [
@@ -124,11 +134,33 @@ class UI:
                     (self.hr_prompt_mode_e, 'Hires prompt mode'),
                     (self.hr_negative_prompt_mode_e, 'Hires negative prompt mode'),
                 ])
+            with gr.Row(elem_classes=['hr-prompt-preset-row']):
+                self.hr_preset_name_e = gr.Dropdown(
+                    label='Hires preset',
+                    show_label=False,
+                    choices=self.get_hr_preset_choices(),
+                    value=None,
+                    allow_custom_value=True,
+                    interactive=True,
+                    placeholder='Hires preset',
+                    elem_id=self.script.elem_id('hr_preset_name'),
+                    elem_classes=['hr-prompt-preset-name'],
+                )
+                self.hr_preset_load_button = gr.Button('Load', elem_id=self.script.elem_id('hr_preset_load'), elem_classes=['hr-prompt-preset-button'])
+                self.hr_preset_save_button = gr.Button('Save', elem_id=self.script.elem_id('hr_preset_save'), elem_classes=['hr-prompt-preset-button'])
+                self.hr_preset_delete_button = gr.Button('Delete', elem_id=self.script.elem_id('hr_preset_delete'), elem_classes=['hr-prompt-preset-button'])
+                self.hr_preset_refresh_button = ui_components.ToolButton(
+                    value=ui.refresh_symbol,
+                    elem_id=self.script.elem_id('hr_preset_refresh'),
+                    tooltip='Refresh hires presets',
+                )
+            self.hr_preset_status_e = gr.Markdown('', elem_id=self.script.elem_id('hr_preset_status'))
         if shared.opts.hires_fix_tweaks_show_hr_prompt_mode and not shared.opts.hires_fix_show_prompts:
             with gr.Row():
                 gr.Markdown('''`Hires prompt mode` is only usable if `Settings` > `UI alternatives` > `Hires fix: show hires prompt and negative prompt` is enabled
 if you do not need this feature you can disable it in `Settings` > `Hires. fix tweaks` > `Show hires Hires prompt mode`''')
         self.create_hr_seed_ui()
+        self.register_hr_preset_actions()
         self.create_ui_hr_prompt_mode_done = True
 
     def create_ui_batch_cfg(self, *args, **kwargs):
@@ -171,6 +203,7 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
                     self.hr_seed_checkbox_e = gr.Checkbox(label='Extra', elem_id=self.script.elem_id("subseed_show"), value=False)
 
                 with gr.Group(visible=False, elem_id=self.script.elem_id("seed_extras")) as seed_extras:
+                    self.hr_seed_extras_group_e = seed_extras
                     with gr.Row(elem_id=self.script.elem_id("subseed_row")):
                         if shared.cmd_opts.use_textbox_seed:
                             self.hr_subseed_e = gr.Textbox(label='Hires variation seed', value='0', elem_id=self.script.elem_id("subseed"))
@@ -212,10 +245,12 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
     def store_hires_prompt_ref_reg_apply(self, on_component: scripts.OnComponent, *args, **kwargs):
         self.hires_prompt_e = on_component.component
         self.register_apply_hr_styles()
+        self.register_hr_preset_actions()
 
     def store_hires_negative_prompt_ref_reg_apply(self, on_component: scripts.OnComponent, *args, **kwargs):
         self.hires_negative_prompt_e = on_component.component
         self.register_apply_hr_styles()
+        self.register_hr_preset_actions()
 
     def register_apply_hr_styles(self):
         if all((self.hires_prompt_e, self.hires_negative_prompt_e, self.apply_hr_styles_button)):
@@ -260,3 +295,216 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
                     (self.enable_hr_styles_e, lambda d: 'Hr styles' in d),
                     (self.hr_styles_e, lambda d: d.get('Hires styles array', None)),
             ])
+
+    def _hr_preset_path(self) -> Path:
+        return Path(__file__).resolve().parent.parent / 'data' / 'hires_presets.json'
+
+    def _load_hr_presets(self) -> dict[str, dict]:
+        path = self._hr_preset_path()
+        if not path.exists():
+            return {}
+
+        try:
+            data = json.loads(path.read_text(encoding='utf-8'))
+        except Exception:
+            return {}
+
+        return data if isinstance(data, dict) else {}
+
+    def _save_hr_presets(self, presets: dict[str, dict]) -> None:
+        path = self._hr_preset_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(presets, ensure_ascii=False, indent=2), encoding='utf-8')
+
+    def get_hr_preset_choices(self) -> list[str]:
+        return sorted(self._load_hr_presets().keys(), key=str.casefold)
+
+    def save_hr_preset(
+        self,
+        preset_name,
+        hr_prompt,
+        hr_negative_prompt,
+        hr_prompt_raw,
+        remove_fp_extra_networks,
+        hr_prompt_mode_value,
+        hr_negative_prompt_mode_value,
+        hr_cfg,
+        hr_batch_count,
+        enable_hr_seed,
+        hr_seed,
+        hr_seed_checkbox,
+        hr_subseed,
+        hr_subseed_strength,
+        hr_seed_resize_from_w,
+        hr_seed_resize_from_h,
+    ):
+        name = (preset_name or '').strip()
+        if not name:
+            return gr.update(choices=self.get_hr_preset_choices()), 'Preset name is empty.'
+
+        presets = self._load_hr_presets()
+        presets[name] = {
+            'hr_prompt': hr_prompt or '',
+            'hr_negative_prompt': hr_negative_prompt or '',
+            'hr_prompt_raw': bool(hr_prompt_raw),
+            'remove_fp_extra_networks': bool(remove_fp_extra_networks),
+            'hr_prompt_mode': hr_prompt_mode_value,
+            'hr_negative_prompt_mode': hr_negative_prompt_mode_value,
+            'hr_cfg': hr_cfg,
+            'hr_batch_count': hr_batch_count,
+            'enable_hr_seed': bool(enable_hr_seed),
+            'hr_seed': hr_seed,
+            'hr_seed_checkbox': bool(hr_seed_checkbox),
+            'hr_subseed': hr_subseed,
+            'hr_subseed_strength': hr_subseed_strength,
+            'hr_seed_resize_from_w': hr_seed_resize_from_w,
+            'hr_seed_resize_from_h': hr_seed_resize_from_h,
+        }
+        self._save_hr_presets(presets)
+        return gr.update(choices=self.get_hr_preset_choices(), value=name), f'Saved hires preset: `{name}`'
+
+    def load_hr_preset(self, preset_name):
+        name = (preset_name or '').strip()
+        presets = self._load_hr_presets()
+        preset = presets.get(name)
+        if not preset:
+            choices = self.get_hr_preset_choices()
+            return [
+                gr.update(choices=choices, value=(name or None)),
+                gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(),
+                gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(),
+                gr.skip(), gr.skip(), gr.skip(),
+                f'Preset not found: `{name}`' if name else 'Select a hires preset to load.',
+            ]
+
+        hr_seed_checkbox = bool(preset.get('hr_seed_checkbox', False))
+        return [
+            gr.update(choices=self.get_hr_preset_choices(), value=name),
+            gr.update(value=preset.get('hr_prompt', '')),
+            gr.update(value=preset.get('hr_negative_prompt', '')),
+            gr.update(value=bool(preset.get('hr_prompt_raw', False))),
+            gr.update(value=bool(preset.get('remove_fp_extra_networks', False))),
+            gr.update(value=preset.get('hr_prompt_mode', 'Default')),
+            gr.update(value=preset.get('hr_negative_prompt_mode', 'Default')),
+            gr.update(value=preset.get('hr_cfg', 0)),
+            gr.update(value=preset.get('hr_batch_count', 1)),
+            gr.update(value=bool(preset.get('enable_hr_seed', False))),
+            gr.update(value=preset.get('hr_seed', 0)),
+            gr.update(value=hr_seed_checkbox),
+            gr.update(value=preset.get('hr_subseed', 0)),
+            gr.update(value=preset.get('hr_subseed_strength', 0)),
+            gr.update(value=preset.get('hr_seed_resize_from_w', 0)),
+            gr.update(value=preset.get('hr_seed_resize_from_h', 0)),
+            gr.update(visible=hr_seed_checkbox),
+            f'Loaded hires preset: `{name}`',
+        ]
+
+    def delete_hr_preset(self, preset_name):
+        name = (preset_name or '').strip()
+        presets = self._load_hr_presets()
+        if name and name in presets:
+            presets.pop(name, None)
+            self._save_hr_presets(presets)
+            return gr.update(choices=self.get_hr_preset_choices(), value=None), f'Deleted hires preset: `{name}`'
+
+        return gr.update(choices=self.get_hr_preset_choices(), value=(name or None)), 'Preset not found.'
+
+    def refresh_hr_preset_choices(self):
+        return gr.update(choices=self.get_hr_preset_choices())
+
+    def register_hr_preset_actions(self):
+        if self.hr_preset_callbacks_done:
+            return
+
+        required = (
+            self.hr_preset_name_e,
+            self.hr_preset_load_button,
+            self.hr_preset_save_button,
+            self.hr_preset_delete_button,
+            self.hr_preset_refresh_button,
+            self.hr_preset_status_e,
+            self.hires_prompt_e,
+            self.hires_negative_prompt_e,
+            self.hr_prompt_raw_e,
+            self.remove_fp_extra_networks_e,
+            self.hr_prompt_mode_e,
+            self.hr_negative_prompt_mode_e,
+            self.hr_cfg_e,
+            self.hr_batch_count_e,
+            self.enable_hr_seed_e,
+            self.hr_seed_e,
+            self.hr_seed_checkbox_e,
+            self.hr_subseed_e,
+            self.hr_subseed_strength_e,
+            self.hr_seed_resize_from_w_e,
+            self.hr_seed_resize_from_h_e,
+            self.hr_seed_extras_group_e,
+        )
+        if not all(required):
+            return
+
+        self.hr_preset_save_button.click(
+            fn=self.save_hr_preset,
+            inputs=[
+                self.hr_preset_name_e,
+                self.hires_prompt_e,
+                self.hires_negative_prompt_e,
+                self.hr_prompt_raw_e,
+                self.remove_fp_extra_networks_e,
+                self.hr_prompt_mode_e,
+                self.hr_negative_prompt_mode_e,
+                self.hr_cfg_e,
+                self.hr_batch_count_e,
+                self.enable_hr_seed_e,
+                self.hr_seed_e,
+                self.hr_seed_checkbox_e,
+                self.hr_subseed_e,
+                self.hr_subseed_strength_e,
+                self.hr_seed_resize_from_w_e,
+                self.hr_seed_resize_from_h_e,
+            ],
+            outputs=[self.hr_preset_name_e, self.hr_preset_status_e],
+            show_progress=False,
+        )
+
+        self.hr_preset_load_button.click(
+            fn=self.load_hr_preset,
+            inputs=[self.hr_preset_name_e],
+            outputs=[
+                self.hr_preset_name_e,
+                self.hires_prompt_e,
+                self.hires_negative_prompt_e,
+                self.hr_prompt_raw_e,
+                self.remove_fp_extra_networks_e,
+                self.hr_prompt_mode_e,
+                self.hr_negative_prompt_mode_e,
+                self.hr_cfg_e,
+                self.hr_batch_count_e,
+                self.enable_hr_seed_e,
+                self.hr_seed_e,
+                self.hr_seed_checkbox_e,
+                self.hr_subseed_e,
+                self.hr_subseed_strength_e,
+                self.hr_seed_resize_from_w_e,
+                self.hr_seed_resize_from_h_e,
+                self.hr_seed_extras_group_e,
+                self.hr_preset_status_e,
+            ],
+            show_progress=False,
+        )
+
+        self.hr_preset_delete_button.click(
+            fn=self.delete_hr_preset,
+            inputs=[self.hr_preset_name_e],
+            outputs=[self.hr_preset_name_e, self.hr_preset_status_e],
+            show_progress=False,
+        )
+
+        self.hr_preset_refresh_button.click(
+            fn=self.refresh_hr_preset_choices,
+            inputs=[],
+            outputs=[self.hr_preset_name_e],
+            show_progress=False,
+        )
+
+        self.hr_preset_callbacks_done = True
