@@ -1,3 +1,10 @@
+# FORK VERSION
+Modified version of:
+https://github.com/w-e-w/sd-webui-hires-fix-tweaks
+
+This version is intended to be used with the modified sd-dynamic-prompts extension.
+Licensed under AGPL-3.0.
+
 # sd webui hires fix tweaks
 
 Add additional options and features to hires fix for [Stable Diffusion web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui)

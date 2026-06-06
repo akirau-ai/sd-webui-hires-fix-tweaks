@@ -1,5 +1,8 @@
 from hires_fix_tweaks.hr_modules import hr_prompt_mode, hr_batch_seed, hr_styles
-from modules import generation_parameters_copypaste  # noqa: generation_parameters_copypaste is the ailes to infotext_utils
+try:
+    from modules import generation_parameters_copypaste  # noqa: generation_parameters_copypaste is the alias to infotext_utils
+except ImportError:
+    from modules import infotext_utils as generation_parameters_copypaste
 from modules import shared, ui_components, ui, scripts, ui_prompt_styles
 from contextlib import nullcontext
 import gradio as gr
@@ -46,6 +49,7 @@ class UI:
         self.hr_cfg_e = None
 
         # hr prompt mode
+        self.hr_prompt_raw_proxy_e = None
         self.hr_prompt_mode_e = None
         self.hr_negative_prompt_mode_e = None
         self.remove_fp_extra_networks_e = None
@@ -107,8 +111,9 @@ class UI:
         if self.create_ui_hr_prompt_mode_done:
             return
         gr_ui_element = getattr(gr, shared.opts.hires_fix_tweaks_hires_prompt_mode_ui_type, gr.Radio)
-        with gr.Row() if (shared.opts.hires_fix_tweaks_show_hr_prompt_mode or shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks) else nullcontext():
-            self.remove_fp_extra_networks_e = gr.Checkbox(label='Remove First Pass Extra Networks', value=False, elem_id=self.script.elem_id('remove_fp_extra_networks'), elem_classes=['hr-tweaks-center-checkbox'], tooltip='Remove extra networks from first-pass prompt before constructing hires-prompt', visible=shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks)
+        with gr.Row(elem_id=self.script.elem_id('hr_prompt_mode_row'), elem_classes=['hr-prompt-mode-row']) if (shared.opts.hires_fix_tweaks_show_hr_prompt_mode or shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks) else nullcontext():
+            self.hr_prompt_raw_proxy_e = gr.Checkbox(label='Raw prompt', value=False, elem_id=self.script.elem_id('hr_raw_prompt_proxy'), elem_classes=['hr-tweaks-inline-checkbox'])
+            self.remove_fp_extra_networks_e = gr.Checkbox(label='Remove LoRA at 1st pass', value=False, elem_id=self.script.elem_id('remove_fp_extra_networks'), elem_classes=['hr-tweaks-inline-checkbox'], tooltip='Remove extra networks from first-pass prompt before constructing hires-prompt', visible=shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks)
             self.hr_prompt_mode_e = gr_ui_element(choices=list(hr_prompt_mode.hires_prompt_mode_functions), label='Hires prompt mode', value='Default', elem_id=self.script.elem_id('hr_prompt_extend_mode'), elem_classes=['hr-prompt-extend-mode'] if shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks else [], visible=shared.opts.hires_fix_tweaks_show_hr_prompt_mode)
             self.hr_negative_prompt_mode_e = gr_ui_element(choices=list(hr_prompt_mode.hires_prompt_mode_functions), label='Hires negative prompt mode', value='Default', elem_id=self.script.elem_id('hr_negative_prompt_extend_mode'), elem_classes=['hr-prompt-extend-mode'] if shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks else [], visible=shared.opts.hires_fix_tweaks_show_hr_prompt_mode)
             self.script.infotext_fields.extend([

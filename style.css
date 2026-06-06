@@ -1,15 +1,25 @@
-.hr-tweaks-center-checkbox {
+.hr-tweaks-inline-checkbox {
     margin: 0.25em 0 0 0 !important;
     min-width: auto !important;
     flex-grow: 0 !important;
 }
 
-.hr-tweaks-center-checkbox label{
+.hr-tweaks-inline-checkbox label{
     font-size: 12px !important;
     line-height: 1 !important;
     text-align: center;
+    white-space: nowrap;
 }
 
 .hr-prompt-extend-mode div label {
     padding: 0.1em 0.3em !important;
+}
+
+.hr-prompt-mode-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    width: 100%;
+    flex-basis: 100%;
+    margin-top: 0.5rem;
 }
