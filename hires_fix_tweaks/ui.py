@@ -38,6 +38,8 @@ class UI:
         self.script = script
         self.script.on_after_component_elem_id.append(('txt2img_hires_fix_row2', self.create_ui_batch_cfg))
         self.script.on_after_component_elem_id.append(('txt2img_hires_fix_row4', self.create_ui_hr_prompt_mode))
+        self.script.on_after_component_elem_id.append(('hr_checkpoint', self.store_hires_checkpoint_ref_reg_apply))
+        self.script.on_after_component_elem_id.append(('hr_vae_te', self.store_hires_modules_ref_reg_apply))
         self.script.on_after_component_elem_id.append(('hires_prompt', self.store_hires_prompt_ref_reg_apply))
         self.script.on_after_component_elem_id.append(('hires_neg_prompt', self.store_hires_negative_prompt_ref_reg_apply))
         # ui create status
@@ -70,6 +72,8 @@ class UI:
         self.hr_styles_e = None
 
         # reference to hires fix prompt and negative prompt input box created by the WebUI
+        self.hires_checkpoint_e = None
+        self.hires_modules_e = None
         self.hires_prompt_e = None
         self.hires_negative_prompt_e = None
 
@@ -247,6 +251,14 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
         self.register_apply_hr_styles()
         self.register_hr_preset_actions()
 
+    def store_hires_checkpoint_ref_reg_apply(self, on_component: scripts.OnComponent, *args, **kwargs):
+        self.hires_checkpoint_e = on_component.component
+        self.register_hr_preset_actions()
+
+    def store_hires_modules_ref_reg_apply(self, on_component: scripts.OnComponent, *args, **kwargs):
+        self.hires_modules_e = on_component.component
+        self.register_hr_preset_actions()
+
     def store_hires_negative_prompt_ref_reg_apply(self, on_component: scripts.OnComponent, *args, **kwargs):
         self.hires_negative_prompt_e = on_component.component
         self.register_apply_hr_styles()
@@ -322,6 +334,8 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
     def save_hr_preset(
         self,
         preset_name,
+        hr_checkpoint_name,
+        hr_additional_modules,
         hr_prompt,
         hr_negative_prompt,
         hr_prompt_raw,
@@ -344,6 +358,8 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
 
         presets = self._load_hr_presets()
         presets[name] = {
+            'hr_checkpoint_name': hr_checkpoint_name or 'Use same checkpoint',
+            'hr_additional_modules': list(hr_additional_modules or ['Use same choices']),
             'hr_prompt': hr_prompt or '',
             'hr_negative_prompt': hr_negative_prompt or '',
             'hr_prompt_raw': bool(hr_prompt_raw),
@@ -371,6 +387,7 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
             choices = self.get_hr_preset_choices()
             return [
                 gr.update(choices=choices, value=(name or None)),
+                gr.skip(), gr.skip(),
                 gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(),
                 gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(),
                 gr.skip(), gr.skip(), gr.skip(),
@@ -380,6 +397,8 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
         hr_seed_checkbox = bool(preset.get('hr_seed_checkbox', False))
         return [
             gr.update(choices=self.get_hr_preset_choices(), value=name),
+            gr.update(value=preset.get('hr_checkpoint_name', 'Use same checkpoint')),
+            gr.update(value=list(preset.get('hr_additional_modules', ['Use same choices']))),
             gr.update(value=preset.get('hr_prompt', '')),
             gr.update(value=preset.get('hr_negative_prompt', '')),
             gr.update(value=bool(preset.get('hr_prompt_raw', False))),
@@ -423,6 +442,8 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
             self.hr_preset_delete_button,
             self.hr_preset_refresh_button,
             self.hr_preset_status_e,
+            self.hires_checkpoint_e,
+            self.hires_modules_e,
             self.hires_prompt_e,
             self.hires_negative_prompt_e,
             self.hr_prompt_raw_e,
@@ -447,6 +468,8 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
             fn=self.save_hr_preset,
             inputs=[
                 self.hr_preset_name_e,
+                self.hires_checkpoint_e,
+                self.hires_modules_e,
                 self.hires_prompt_e,
                 self.hires_negative_prompt_e,
                 self.hr_prompt_raw_e,
@@ -472,6 +495,8 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
             inputs=[self.hr_preset_name_e],
             outputs=[
                 self.hr_preset_name_e,
+                self.hires_checkpoint_e,
+                self.hires_modules_e,
                 self.hires_prompt_e,
                 self.hires_negative_prompt_e,
                 self.hr_prompt_raw_e,
